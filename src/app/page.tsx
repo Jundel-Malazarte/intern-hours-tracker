@@ -760,9 +760,9 @@ export default function Home() {
           <span>
             <a
               className="underline hover:text-primary"
-              href="https://aybangueco.vercel.app/"
+              href="https://jundelmalazarte.vercel.app/"
             >
-              aybangueco
+              Jundel Malazarte
             </a>
           </span>
         </p>
