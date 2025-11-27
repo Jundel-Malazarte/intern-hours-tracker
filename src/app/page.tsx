@@ -166,42 +166,43 @@ export default function Home() {
   };
 
   const handleAddEntry = async () => {
-    if (!newEntry.date) {
-      alert("Please select a date");
-      return;
-    }
+  if (!newEntry.date) {
+    alert("Please select a date");
+    return;
+  }
 
-    setIsSubmitting(true);
+  setIsSubmitting(true);
 
-    const response = await fetch("/api/entries", {
-      method: "POST",
-      body: JSON.stringify({ ...newEntry }),
-    });
+  const response = await fetch("/api/entries", {
+    method: "POST",
+    body: JSON.stringify({ ...newEntry }),
+  });
 
-    if (response.status != 201) {
-      // TODO: Add some sort of error sanitization here
-      toast.error("Error adding time entry");
-      return;
-    }
-
-    const data: TimeEntry = await response.json();
-
-    setTimeEntries((prev) => [...prev, { ...newEntry, id: data.id }]);
-
-    toast.success("Added entry successfully");
-
+  if (response.status !== 201) {
+    toast.error("Error adding time entry");
     setIsSubmitting(false);
+    return;
+  }
 
-    setNewEntry({
-      date: "",
-      morning_time_in: "",
-      morning_time_out: "",
-      afternoon_time_in: "",
-      afternoon_time_out: "",
-      evening_time_in: "",
-      evening_time_out: "",
-    });
-  };
+  const data: TimeEntry = await response.json();
+
+  // FIX: use the real DB row
+  setTimeEntries((prev) => [...prev, data]);
+
+  toast.success("Added entry successfully");
+
+  setIsSubmitting(false);
+
+  setNewEntry({
+    date: "",
+    morning_time_in: "",
+    morning_time_out: "",
+    afternoon_time_in: "",
+    afternoon_time_out: "",
+    evening_time_in: "",
+    evening_time_out: "",
+  });
+};
 
   const handleUpdateEntry = async (id: number) => {
     if (!updateEntry.date) {
