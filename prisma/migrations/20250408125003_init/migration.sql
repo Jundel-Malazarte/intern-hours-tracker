@@ -11,6 +11,5 @@ CREATE TABLE "Entries" (
     "evening_time_in" TEXT,
     "evening_time_out" TEXT,
     "created_by" TEXT NOT NULL,
-
     CONSTRAINT "Entries_pkey" PRIMARY KEY ("id")
 );

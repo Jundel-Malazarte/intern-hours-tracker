@@ -9,14 +9,16 @@ datasource db {
 }
 
 model Entries {
-  id                 Int      @id @default(autoincrement())
-  created_at         DateTime @default(now())
-  date               String
-  morning_time_in    String
-  morning_time_out   String
-  afternoon_time_in  String
-  afternoon_time_out String
-  evening_time_in    String?
-  evening_time_out   String?
+  id                 Int       @id @default(autoincrement())
+  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+  date               DateTime  @db.Date
+  morning_time_in    DateTime? @db.Time(6)
+  morning_time_out   DateTime? @db.Time(6)
+  afternoon_time_in  DateTime? @db.Time(6)
+  afternoon_time_out DateTime? @db.Time(6)
+  evening_time_in    DateTime? @db.Time(6)
+  evening_time_out   DateTime? @db.Time(6)
   created_by         String
+
+  @@index([created_by], name: "Entries_created_by_idx")
 }

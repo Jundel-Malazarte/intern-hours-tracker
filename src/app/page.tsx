@@ -52,7 +52,8 @@ interface TimeEntry {
 type NewTimeEntry = Omit<TimeEntry, "id">;
 
 export default function Home() {
-  const [requiredHours, setRequiredHours] = useState<number>(500);
+  // store as string so user can freely clear/type
+  const [requiredHours, setRequiredHours] = useState<string>("500");
   const [completedHours, setCompletedHours] = useState<number>(0);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -60,6 +61,7 @@ export default function Home() {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const { user, userLoading } = useAuthUser();
+
   const [newEntry, setNewEntry] = useState<NewTimeEntry>({
     date: "",
     morning_time_in: "",
@@ -80,24 +82,46 @@ export default function Home() {
     evening_time_out: "",
   });
 
-  const completionPercentage: number = Math.min(
-    Math.round((completedHours / requiredHours) * 100),
-    100
-  );
+  // numeric version for math
+  const requiredHoursNumber = Number(requiredHours) || 0;
+
+  const completionPercentage: number =
+    requiredHoursNumber === 0
+      ? 0
+      : Math.min(
+          Math.round((completedHours / requiredHoursNumber) * 100),
+          100
+        );
+
+  // shared helper for entry hours (handles HH:MM and HH:MM:SS)
+  const calculateEntryHours = (timeIn: string, timeOut: string): number => {
+    if (!timeIn || !timeOut) return 0;
+
+    const inParts = timeIn.split(":").map((p) => Number(p));
+    const outParts = timeOut.split(":").map((p) => Number(p));
+
+    if (inParts.length < 2 || outParts.length < 2) return 0;
+    if (inParts.some(Number.isNaN) || outParts.some(Number.isNaN)) return 0;
+
+    const [inHour, inMinute] = inParts;
+    const [outHour, outMinute] = outParts;
+
+    const inMinutes = inHour * 60 + inMinute;
+    const outMinutes = outHour * 60 + outMinute;
+
+    return Math.max(0, (outMinutes - inMinutes) / 60);
+  };
 
   useEffect(() => {
     if (!localStorage.getItem("hours")) {
-      localStorage.setItem("hours", requiredHours.toString());
+      localStorage.setItem("hours", requiredHours);
     }
 
     async function fetchEntries() {
-      if (!user?.id) {
-        return;
-      }
+      if (!user?.id) return;
 
-      const entries = await fetch(`/api/entries`);
-
-      const data = await entries.json();
+      const res = await fetch(`/api/entries`);
+      const data = await res.json();
 
       setLoading(false);
       setTimeEntries(data);
@@ -105,34 +129,25 @@ export default function Home() {
 
     fetchEntries();
 
-    setRequiredHours(Number(localStorage.getItem("hours")));
+    const stored = localStorage.getItem("hours");
+    if (stored !== null) {
+      setRequiredHours(stored);
+    }
   }, [userLoading]);
 
   useEffect(() => {
     let totalHours = 0;
 
     timeEntries.forEach((entry) => {
-      const calculateHours = (timeIn: string, timeOut: string): number => {
-        if (!timeIn || !timeOut) return 0;
-
-        const [inHour, inMinute] = timeIn.split(":").map(Number);
-        const [outHour, outMinute] = timeOut.split(":").map(Number);
-
-        const inMinutes = inHour * 60 + inMinute;
-        const outMinutes = outHour * 60 + outMinute;
-
-        return Math.max(0, (outMinutes - inMinutes) / 60);
-      };
-
-      const morningHours = calculateHours(
+      const morningHours = calculateEntryHours(
         entry.morning_time_in,
         entry.morning_time_out
       );
-      const afternoonHours = calculateHours(
+      const afternoonHours = calculateEntryHours(
         entry.afternoon_time_in,
         entry.afternoon_time_out
       );
-      const eveningHours = calculateHours(
+      const eveningHours = calculateEntryHours(
         entry.evening_time_in,
         entry.evening_time_out
       );
@@ -141,7 +156,6 @@ export default function Home() {
     });
 
     localStorage.setItem("entries", JSON.stringify(timeEntries));
-
     setCompletedHours(parseFloat(totalHours.toFixed(2)));
   }, [timeEntries]);
 
@@ -160,49 +174,49 @@ export default function Home() {
   const handleRequiredHoursChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ): void => {
-    const value = parseInt(e.target.value) || 0;
-    localStorage.setItem("hours", value.toString());
+    const value = e.target.value;
+    // allow empty while typing
     setRequiredHours(value);
+    localStorage.setItem("hours", value === "" ? "0" : value);
   };
 
   const handleAddEntry = async () => {
-  if (!newEntry.date) {
-    alert("Please select a date");
-    return;
-  }
+    if (!newEntry.date) {
+      alert("Please select a date");
+      return;
+    }
 
-  setIsSubmitting(true);
+    setIsSubmitting(true);
 
-  const response = await fetch("/api/entries", {
-    method: "POST",
-    body: JSON.stringify({ ...newEntry }),
-  });
+    const response = await fetch("/api/entries", {
+      method: "POST",
+      body: JSON.stringify({ ...newEntry }),
+    });
 
-  if (response.status !== 201) {
-    toast.error("Error adding time entry");
+    if (response.status !== 201) {
+      toast.error("Error adding time entry");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const data: TimeEntry = await response.json();
+
+    // use the real DB row returned from API
+    setTimeEntries((prev) => [...prev, data]);
+
+    toast.success("Added entry successfully");
     setIsSubmitting(false);
-    return;
-  }
 
-  const data: TimeEntry = await response.json();
-
-  // FIX: use the real DB row
-  setTimeEntries((prev) => [...prev, data]);
-
-  toast.success("Added entry successfully");
-
-  setIsSubmitting(false);
-
-  setNewEntry({
-    date: "",
-    morning_time_in: "",
-    morning_time_out: "",
-    afternoon_time_in: "",
-    afternoon_time_out: "",
-    evening_time_in: "",
-    evening_time_out: "",
-  });
-};
+    setNewEntry({
+      date: "",
+      morning_time_in: "",
+      morning_time_out: "",
+      afternoon_time_in: "",
+      afternoon_time_out: "",
+      evening_time_in: "",
+      evening_time_out: "",
+    });
+  };
 
   const handleUpdateEntry = async (id: number) => {
     if (!updateEntry.date) {
@@ -215,9 +229,8 @@ export default function Home() {
         body: JSON.stringify(updateEntry),
       });
 
-      if (response.status != 204) {
-        // TODO: Add some sort of error sanitization here
-        toast.error("Error adding time entry");
+      if (response.status !== 204) {
+        toast.error("Error updating time entry");
         return;
       }
 
@@ -253,7 +266,7 @@ export default function Home() {
         method: "DELETE",
       });
 
-      if (response.status != 204) {
+      if (response.status !== 204) {
         toast.error("Cannot delete entry");
         return;
       }
@@ -267,18 +280,6 @@ export default function Home() {
     } finally {
       setIsDeleting(false);
     }
-  };
-
-  const calculateEntryHours = (timeIn: string, timeOut: string): number => {
-    if (!timeIn || !timeOut) return 0;
-
-    const [inHour, inMinute] = timeIn.split(":").map(Number);
-    const [outHour, outMinute] = timeOut.split(":").map(Number);
-
-    const inMinutes = inHour * 60 + inMinute;
-    const outMinutes = outHour * 60 + outMinute;
-
-    return Math.max(0, (outMinutes - inMinutes) / 60);
   };
 
   const onClickLogout = async () => {
@@ -297,7 +298,7 @@ export default function Home() {
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="flex justify-between">
         <h1 className="text-3xl font-bold mb-6 text-center">
-          OJT Hours Tracker
+          Intern Hours Tracker
         </h1>
         <div className="flex gap-3 items-center justify-center">
           <ThemeSwitcher />
@@ -327,7 +328,7 @@ export default function Home() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card className="shadow-md">
           <CardHeader>
-            <CardTitle className="text-center">OJT Progress</CardTitle>
+            <CardTitle className="text-center">Intern Progress</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center">
             <div className="relative w-48 h-48">
@@ -352,15 +353,16 @@ export default function Home() {
             <div className="mt-4 w-full">
               <Progress value={completionPercentage} className="h-2" />
               <div className="flex justify-between text-sm mt-2">
-                <span>{completedHours} hours completed</span>
-                <span>{requiredHours} hours required</span>
+                <span>{completedHours.toFixed(2)} hours completed</span>
+                <span>{requiredHoursNumber} hours required</span>
               </div>
             </div>
           </CardContent>
           <CardFooter>
             <div className="w-full">
               <p className="text-sm">
-                Remaining Hours: {requiredHours - completedHours}
+                Remaining Hours:{" "}
+                {(requiredHoursNumber - completedHours).toFixed(2)}
               </p>
               <Label htmlFor="requiredHours">Total Required Hours:</Label>
               <Input
