@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -57,7 +57,7 @@ export default function Home() {
   const [completedHours, setCompletedHours] = useState<number>(0);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true); // Initial state is true
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
@@ -94,24 +94,65 @@ export default function Home() {
           100
         );
 
-  // shared helper for entry hours (handles HH:MM and HH:MM:SS)
-  const calculateEntryHours = (timeIn: string, timeOut: string): number => {
-    if (!timeIn || !timeOut) return 0;
+  // Memoized function to calculate the difference between time-in and time-out in hours.
+  const calculateEntryHours = useCallback(
+    (timeIn: string, timeOut: string): number => {
+      if (!timeIn || !timeOut) return 0;
 
-    const inParts = timeIn.split(":").map((p) => Number(p));
-    const outParts = timeOut.split(":").map((p) => Number(p));
+      // Split "HH:MM" strings into hours and minutes
+      const inParts = timeIn.split(":").map((p) => Number(p));
+      const outParts = timeOut.split(":").map((p) => Number(p));
 
-    if (inParts.length < 2 || outParts.length < 2) return 0;
-    if (inParts.some(Number.isNaN) || outParts.some(Number.isNaN)) return 0;
+      if (inParts.length < 2 || outParts.length < 2) return 0;
+      if (inParts.some(Number.isNaN) || outParts.some(Number.isNaN)) return 0;
 
-    const [inHour, inMinute] = inParts;
-    const [outHour, outMinute] = outParts;
+      const [inHour, inMinute] = inParts;
+      const [outHour, outMinute] = outParts;
 
-    const inMinutes = inHour * 60 + inMinute;
-    const outMinutes = outHour * 60 + outMinute;
+      // Convert times to total minutes from midnight
+      const inMinutes = inHour * 60 + inMinute;
+      const outMinutes = outHour * 60 + outMinute;
 
-    return Math.max(0, (outMinutes - inMinutes) / 60);
-  };
+      // Calculate the difference in minutes
+      const diffInMinutes = outMinutes - inMinutes;
+
+      // Return the difference, ensuring it's not negative (Math.max(0, ...)), and convert to hours
+      return Math.max(0, diffInMinutes / 60);
+    },
+    [] // Empty dependency array: The function is created once and reused.
+  );
+  
+  // ----------------------------------------------------------------------
+  // 🔥 FIX FOR INFINITE LOADING/FETCHING
+  // ----------------------------------------------------------------------
+
+  // Memoized function to fetch existing entries
+  const fetchEntries = useCallback(async () => {
+    // If user is null (logged out), stop loading immediately
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true); // <--- START LOADING
+
+    try {
+      const response = await fetch("/api/entries");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch entries");
+      }
+
+      const data: TimeEntry[] = await response.json();
+      setTimeEntries(data); // Set the received data
+    } catch (error) {
+      console.error("Error fetching time entries:", error);
+      toast.error("Could not load entries.");
+      setTimeEntries([]);
+    } finally {
+      setLoading(false); // <--- CRITICAL: STOP LOADING in all cases
+    }
+  }, [user]); // Only recreate/run when the user object changes
 
   // New useEffect to calculate total completed hours whenever entries change
   useEffect(() => {
@@ -138,9 +179,29 @@ export default function Home() {
       return sum + morning + afternoon + evening;
     }, 0);
 
-    // This is where you use the 'setCompletedHours' setter!
+    // ... logic for calculating totalHours ...
     setCompletedHours(totalHours);
-  }, [timeEntries]); // Dependency array: Recalculate anytime timeEntries changes
+  }, [timeEntries, calculateEntryHours]); // Added calculateEntryHours as dependency
+
+  // Primary useEffect to fetch data on component mount/user authentication
+  useEffect(() => {
+    // 1. Load required hours from local storage on mount
+    const storedHours = localStorage.getItem("hours");
+    if (storedHours) {
+      setRequiredHours(storedHours);
+    }
+
+    // 2. Fetch entries only when the user is available and finished loading
+    if (user && !userLoading) {
+      fetchEntries();
+    }
+    
+    // Dependencies ensure this only runs once when the user data is finalized
+  }, [user, userLoading, fetchEntries]);
+
+  // ----------------------------------------------------------------------
+  // END OF FIX
+  // ----------------------------------------------------------------------
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
@@ -164,41 +225,57 @@ export default function Home() {
   };
 
   const handleAddEntry = async () => {
-    if (!newEntry.date) {
-      alert("Please select a date");
+    // 1. Basic validation check (missing in your code)
+    if (
+      !newEntry.date ||
+      !newEntry.morning_time_in ||
+      !newEntry.morning_time_out ||
+      !newEntry.afternoon_time_in ||
+      !newEntry.afternoon_time_out
+    ) {
+      toast.error("Please fill in Date, Morning In/Out, and Afternoon In/Out.");
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSubmitting(true); // <--- CRITICAL: Start loading state and disable button
 
-    const response = await fetch("/api/entries", {
-      method: "POST",
-      body: JSON.stringify({ ...newEntry }),
-    });
+    try {
+      const response = await fetch("/api/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEntry),
+      });
 
-    if (response.status !== 201) {
-      toast.error("Error adding time entry");
-      setIsSubmitting(false);
-      return;
+      if (response.status !== 201) {
+        // If the API returns a status other than 201, show the error message.
+        toast.error("Error adding time entry.");
+        // We do not return here, we let the finally block reset the button state.
+        return;
+      }
+
+      const data: TimeEntry = await response.json();
+
+      // Update the dashboard display with the new entry
+      setTimeEntries((prev) => [...prev, data]);
+
+      toast.success("Added entry successfully");
+
+      // Reset form fields
+      setNewEntry({
+        date: "",
+        morning_time_in: "",
+        morning_time_out: "",
+        afternoon_time_in: "",
+        afternoon_time_out: "",
+        evening_time_in: "",
+        evening_time_out: "",
+      });
+    } catch (error) {
+      console.error("Client-side error adding entry:", error);
+      toast.error("An unexpected error occurred.");
+    } finally {
+      setIsSubmitting(false); // <--- CRITICAL: Re-enable the button regardless of outcome
     }
-
-    const data: TimeEntry = await response.json();
-
-    // use the real DB row returned from API
-    setTimeEntries((prev) => [...prev, data]);
-
-    toast.success("Added entry successfully");
-    setIsSubmitting(false);
-
-    setNewEntry({
-      date: "",
-      morning_time_in: "",
-      morning_time_out: "",
-      afternoon_time_in: "",
-      afternoon_time_out: "",
-      evening_time_in: "",
-      evening_time_out: "",
-    });
   };
 
   const handleUpdateEntry = async (id: number) => {
@@ -264,6 +341,7 @@ export default function Home() {
       setIsDeleting(false);
     }
   };
+  
 
   const onClickLogout = async () => {
     const supabase = createClient();
