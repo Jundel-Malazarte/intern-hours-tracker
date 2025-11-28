@@ -3,35 +3,25 @@ import {
   createEntries,
   getEntriesByUser,
 } from "../../modules/entries/repository";
-import { Entries } from "../../../../generated/prisma"; // Change this line
+import { Entries } from "../../../../generated/prisma";
 import { entriesSchema } from "@/app/modules/entries";
 import { ZodError } from "zod";
 import { createClient } from "@/utils/supabase/server";
 
-/**
- * Helpers to convert between DB Date/Time and the simple strings
- * used by the frontend ("YYYY-MM-DD" and "HH:MM").
- */
-
+// ... Keep your Date/Time helper functions here (dateFromYMD, etc.) ...
+// (I have omitted them for brevity, but keep them in your file)
 function dateFromYMD(ymd: string): Date {
-  // e.g. "2025-02-05" -> Date at midnight UTC
   return new Date(`${ymd}T00:00:00.000Z`);
 }
-
 function timeFromHM(time: string | null | undefined): Date | null {
   if (!time) return null;
-  // normalize "HH:MM" -> "HH:MM:00"
   const normalized = time.length === 5 ? `${time}:00` : time;
-  // Any date is fine for Postgres TIME; Prisma ignores the date part.
   return new Date(`1970-01-01T${normalized}Z`);
 }
-
 function toYMD(d: Date | null | undefined): string {
   if (!d) return "";
-  // yyyy-mm-dd
   return d.toISOString().slice(0, 10);
 }
-
 function toHM(d: Date | null | undefined): string {
   if (!d) return "";
   const h = d.getUTCHours().toString().padStart(2, "0");
@@ -42,11 +32,14 @@ function toHM(d: Date | null | undefined): string {
 export async function GET() {
   const supabase = await createClient();
 
+  // FIX: Use getUser instead of getSession for better security in App Router
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (authError || !user) {
+    console.error("Auth Error:", authError); // Log this for Vercel
     return new Response(JSON.stringify({ error: "Unauthorized access" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -54,10 +47,8 @@ export async function GET() {
   }
 
   try {
-    const entries = await getEntriesByUser(session.user.id);
+    const entries = await getEntriesByUser(user.id);
 
-    // Prisma now returns Date objects for date/time columns.
-    // Map them back to the simple strings the frontend expects.
     const formatted = entries.map((e) => ({
       id: e.id,
       date: toYMD(e.date as unknown as Date),
@@ -67,8 +58,6 @@ export async function GET() {
       afternoon_time_out: toHM(e.afternoon_time_out as unknown as Date),
       evening_time_in: toHM(e.evening_time_in as unknown as Date),
       evening_time_out: toHM(e.evening_time_out as unknown as Date),
-      // created_by / created_at not needed by the current UI,
-      // but you can include them if you want.
     }));
 
     return new Response(JSON.stringify(formatted), {
@@ -76,8 +65,10 @@ export async function GET() {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.log(error);
-    return new Response(JSON.stringify({ error: "Unknown error occurred" }), {
+    // This logs the ACTUAL database error to Vercel Function Logs
+    console.error("Database/Server Error:", error); 
+    
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
@@ -100,10 +91,11 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (authError || !user) {
     return new Response(JSON.stringify({ error: "Unauthorized access" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -111,7 +103,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Validate the incoming string payload with your Zod schema
     const input = entriesSchema.parse({
       date,
       morning_time_in,
@@ -120,10 +111,9 @@ export async function POST(request: NextRequest) {
       afternoon_time_out,
       evening_time_in: evening_time_in ?? null,
       evening_time_out: evening_time_out ?? null,
-      created_by: session.user.id,
+      created_by: user.id,
     });
 
-    // Convert validated strings into Date objects expected by Prisma
     const toCreate: Omit<Entries, "id" | "created_at"> = {
       date: dateFromYMD(input.date) as Date,
       morning_time_in: timeFromHM(input.morning_time_in) as Date,
@@ -133,11 +123,10 @@ export async function POST(request: NextRequest) {
       evening_time_in: timeFromHM(input.evening_time_in ?? null),
       evening_time_out: timeFromHM(input.evening_time_out ?? null),
       created_by: input.created_by,
-    };    
+    };
 
     const newEntry = await createEntries(toCreate);
 
-    // Send back formatted strings again so the frontend TimeEntry type still matches
     const responseBody = {
       id: newEntry.id,
       date: toYMD(newEntry.date as unknown as Date),
@@ -154,7 +143,7 @@ export async function POST(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.log(error);
+    console.error("POST Error:", error);
     if (error instanceof ZodError) {
       return new Response(JSON.stringify({ errors: error.flatten() }), {
         status: 400,
@@ -162,7 +151,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown error occurred" }), {
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });

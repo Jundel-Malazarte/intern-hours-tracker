@@ -113,18 +113,39 @@ export default function Home() {
   };
 
   useEffect(() => {
-  if (!localStorage.getItem("hours")) {
-    localStorage.setItem("hours", requiredHours);
-  }
+    if (!localStorage.getItem("hours")) {
+      localStorage.setItem("hours", requiredHours);
+    }
 
-  async function fetchEntries() {
+    async function fetchEntries() {
       if (!user?.id) return;
 
-      const res = await fetch(`/api/entries`);
-      const data = await res.json();
+      try {
+        const res = await fetch(`/api/entries`);
+        
+        // 1. Safety Check: Did the API return an error code?
+        if (!res.ok) {
+          console.error("Failed to fetch:", res.status, res.statusText);
+          setTimeEntries([]); // Set empty array so app doesn't crash
+          setLoading(false);
+          return;
+        }
 
-      setLoading(false);
-      setTimeEntries(data);
+        const data = await res.json();
+
+        // 2. Safety Check: Is the data actually an array?
+        if (Array.isArray(data)) {
+          setTimeEntries(data);
+        } else {
+          console.error("API returned invalid format:", data);
+          setTimeEntries([]); // Fallback to empty array
+        }
+      } catch (error) {
+        console.error("Network or parsing error:", error);
+        setTimeEntries([]);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchEntries();
@@ -133,31 +154,8 @@ export default function Home() {
     if (stored !== null) {
       setRequiredHours(stored);
     }
-  }, [userLoading, requiredHours, user?.id]); // Add missing dependencies
-
-  useEffect(() => {
-    let totalHours = 0;
-
-    timeEntries.forEach((entry) => {
-      const morningHours = calculateEntryHours(
-        entry.morning_time_in,
-        entry.morning_time_out
-      );
-      const afternoonHours = calculateEntryHours(
-        entry.afternoon_time_in,
-        entry.afternoon_time_out
-      );
-      const eveningHours = calculateEntryHours(
-        entry.evening_time_in,
-        entry.evening_time_out
-      );
-
-      totalHours += morningHours + afternoonHours + eveningHours;
-    });
-
-    localStorage.setItem("entries", JSON.stringify(timeEntries));
-    setCompletedHours(parseFloat(totalHours.toFixed(2)));
-  }, [timeEntries]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
