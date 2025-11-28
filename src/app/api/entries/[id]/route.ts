@@ -9,6 +9,19 @@ import { Entries } from "../../../../../generated/prisma";
 import { ZodError } from "zod";
 import { createClient } from "@/utils/supabase/server";
 
+/**
+ * Helpers to convert between strings and Date objects
+ */
+function dateFromYMD(ymd: string): Date {
+  return new Date(`${ymd}T00:00:00.000Z`);
+}
+
+function timeFromHM(time: string | null | undefined): Date | null {
+  if (!time) return null;
+  const normalized = time.length === 5 ? `${time}:00` : time;
+  return new Date(`1970-01-01T${normalized}Z`);
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: number }> }
@@ -51,6 +64,7 @@ export async function PUT(
   }
 
   try {
+    // Validate the incoming string payload
     const input = entriesSchema.parse({
       date,
       morning_time_in,
@@ -74,7 +88,19 @@ export async function PUT(
       );
     }
 
-    await updateEntry(Number(id), session.user.id, input);
+    // Convert validated strings into Date objects expected by Prisma
+    const toUpdate: Omit<Entries, "id" | "created_at"> = {
+      date: dateFromYMD(input.date),
+      morning_time_in: timeFromHM(input.morning_time_in),
+      morning_time_out: timeFromHM(input.morning_time_out),
+      afternoon_time_in: timeFromHM(input.afternoon_time_in),
+      afternoon_time_out: timeFromHM(input.afternoon_time_out),
+      evening_time_in: timeFromHM(input.evening_time_in ?? null),
+      evening_time_out: timeFromHM(input.evening_time_out ?? null),
+      created_by: input.created_by,
+    };
+
+    await updateEntry(Number(id), session.user.id, toUpdate);
 
     return new Response(null, {
       status: 204,
