@@ -295,481 +295,626 @@ export default function Home() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <div className="flex justify-between">
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          Intern Hours Tracker
-        </h1>
-        <div className="flex gap-3 items-center justify-center">
-          <ThemeSwitcher />
-          {userLoading ? (
-            <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Image
-                  width={100}
-                  height={100}
-                  src={user?.user_metadata.avatar_url}
-                  alt="user pic"
-                  className="h-8 w-8 rounded-full"
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuLabel className="text-center">
-                  <Button onClick={onClickLogout}>Logout</Button>
-                </DropdownMenuLabel>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/60 text-foreground">
+      <div className="container mx-auto max-w-5xl px-4 py-8">
+        {/* Top bar */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+              Intern Hours Tracker
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Track daily attendance, compute OJT hours, and monitor progress in
+              one place.
+            </p>
+          </div>
+          <div className="flex gap-3 items-center">
+            <ThemeSwitcher />
+            {userLoading ? (
+              <div className="h-7 w-7 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : (
+              user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1">
+                    <Image
+                      width={32}
+                      height={32}
+                      src={user?.user_metadata.avatar_url}
+                      alt="user pic"
+                      className="h-8 w-8 rounded-full border border-border"
+                    />
+                    <span className="hidden md:inline text-xs text-muted-foreground max-w-[140px] truncate">
+                      {user.email}
+                    </span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel className="text-center">
+                      <Button size="sm" onClick={onClickLogout}>
+                        Logout
+                      </Button>
+                    </DropdownMenuLabel>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="text-center">Intern Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center">
-            <div className="relative w-48 h-48">
-              <div
-                className="w-full h-full rounded-full"
-                style={{
-                  background: `conic-gradient(
-                    #3b82f6 ${completionPercentage}%,
-                    #e5e7eb ${completionPercentage}%
-                  )`,
-                }}
-              >
-                <div className="absolute top-4 left-4 right-4 bottom-4 bg-primary rounded-full flex items-center justify-center flex-col">
-                  <span className="text-4xl font-bold">
-                    {completionPercentage}%
+        {/* Main grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Progress Card */}
+          <Card className="shadow-xl border-border bg-card/80 backdrop-blur-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-center text-lg">
+                Intern Progress
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center">
+              <div className="relative w-48 h-48">
+                <div
+                  className="w-full h-full rounded-full"
+                  style={{
+                    background: `conic-gradient(
+                      var(--color-primary) ${completionPercentage}%,
+                      var(--color-muted) ${completionPercentage}%
+                    )`,
+                  }}
+                >
+                  <div className="absolute top-4 left-4 right-4 bottom-4 bg-background rounded-full flex items-center justify-center flex-col border border-border shadow-inner">
+                    <span className="text-4xl font-bold">
+                      {completionPercentage}%
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Completed
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 w-full space-y-2">
+                <Progress value={completionPercentage} className="h-2" />
+                <div className="flex flex-wrap justify-between text-xs md:text-sm mt-1 gap-y-1">
+                  <span className="text-foreground">
+                    {completedHours.toFixed(2)} hours logged
                   </span>
-                  <span className="text-sm">Complete</span>
+                  <span className="text-muted-foreground">
+                    {requiredHoursNumber} hours required
+                  </span>
                 </div>
-              </div>
-            </div>
 
-            <div className="mt-4 w-full">
-              <Progress value={completionPercentage} className="h-2" />
-              <div className="flex justify-between text-sm mt-2">
-                <span>{completedHours.toFixed(2)} hours completed</span>
-                <span>{requiredHoursNumber} hours required</span>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <div className="w-full">
-              <p className="text-sm">
-                Remaining Hours:{" "}
-                {(requiredHoursNumber - completedHours).toFixed(2)}
-              </p>
-              <Label htmlFor="requiredHours">Total Required Hours:</Label>
-              <Input
-                id="requiredHours"
-                type="number"
-                value={requiredHours}
-                onChange={handleRequiredHoursChange}
-                className="mt-1"
-              />
-            </div>
-          </CardFooter>
-        </Card>
-
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle>Record Time Entry</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="date" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" /> Date
-                </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  name="date"
-                  value={newEntry.date}
-                  onChange={handleInputChange}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" /> Morning
-                </Label>
-                <div className="flex gap-2 mt-1">
-                  <div className="w-1/2">
-                    <Input
-                      type="time"
-                      name="morning_time_in"
-                      placeholder="Time In"
-                      value={newEntry.morning_time_in}
-                      onChange={handleInputChange}
-                    />
-                    <span className="text-xs text-gray-500">Time In</span>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg border border-border bg-card px-3 py-2">
+                    <p className="text-muted-foreground">Remaining</p>
+                    <p className="text-lg font-semibold text-primary">
+                      {(requiredHoursNumber - completedHours).toFixed(2)} hrs
+                    </p>
                   </div>
-                  <div className="w-1/2">
-                    <Input
-                      type="time"
-                      name="morning_time_out"
-                      placeholder="Time Out"
-                      value={newEntry.morning_time_out}
-                      onChange={handleInputChange}
-                    />
-                    <span className="text-xs text-gray-500">Time Out</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" /> Afternoon
-                </Label>
-                <div className="flex gap-2 mt-1">
-                  <div className="w-1/2">
-                    <Input
-                      type="time"
-                      name="afternoon_time_in"
-                      placeholder="Time In"
-                      value={newEntry.afternoon_time_in}
-                      onChange={handleInputChange}
-                    />
-                    <span className="text-xs text-gray-500">Time In</span>
-                  </div>
-                  <div className="w-1/2">
-                    <Input
-                      type="time"
-                      name="afternoon_time_out"
-                      placeholder="Time Out"
-                      value={newEntry.afternoon_time_out}
-                      onChange={handleInputChange}
-                    />
-                    <span className="text-xs text-gray-500">Time Out</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" /> Evening (Optional)
-                </Label>
-                <div className="flex gap-2 mt-1">
-                  <div className="w-1/2">
-                    <Input
-                      type="time"
-                      name="evening_time_in"
-                      placeholder="Time In"
-                      value={newEntry.evening_time_in}
-                      onChange={handleInputChange}
-                    />
-                    <span className="text-xs text-gray-500">Time In</span>
-                  </div>
-                  <div className="w-1/2">
-                    <Input
-                      type="time"
-                      name="evening_time_out"
-                      placeholder="Time Out"
-                      value={newEntry.evening_time_out}
-                      onChange={handleInputChange}
-                    />
-                    <span className="text-xs text-gray-500">Time Out</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button
-              disabled={isSubmitting}
-              className="w-full text-foreground"
-              onClick={handleAddEntry}
-            >
-              {isSubmitting ? (
-                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-              ) : (
-                <p>Add Time Entry</p>
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>Time Entry History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading && (
-            <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-          )}
-          {timeEntries.length === 0 && !loading ? (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                No time entries yet. Add your first entry using the form above.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <div className="space-y-4">
-              {timeEntries.map((entry, index) => {
-                const morningHours = calculateEntryHours(
-                  entry.morning_time_in,
-                  entry.morning_time_out
-                );
-                const afternoonHours = calculateEntryHours(
-                  entry.afternoon_time_in,
-                  entry.afternoon_time_out
-                );
-                const eveningHours = calculateEntryHours(
-                  entry.evening_time_in,
-                  entry.evening_time_out
-                );
-                const totalHours = morningHours + afternoonHours + eveningHours;
-
-                return (
-                  <div key={entry.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-semibold">
-                        {new Date(entry.date).toLocaleDateString("en-US", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </h3>
-                      <span className="font-bold text-blue-600">
-                        {totalHours.toFixed(2)} hours
+                  <div className="rounded-lg border border-border bg-card px-3 py-2">
+                    <p className="text-muted-foreground">Total Required</p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="requiredHours"
+                        type="number"
+                        value={requiredHours}
+                        onChange={handleRequiredHoursChange}
+                        className="mt-1 h-8 text-xs bg-background border-border"
+                      />
+                      <span className="text-[11px] text-muted-foreground">
+                        hours
                       </span>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      {entry.morning_time_in && (
-                        <div>
-                          <span className="font-medium">Morning:</span>{" "}
-                          {entry.morning_time_in} - {entry.morning_time_out}
-                          <span className="ml-2 text-gray-500">
-                            ({morningHours.toFixed(2)} hrs)
-                          </span>
-                        </div>
-                      )}
-
-                      {entry.afternoon_time_in && (
-                        <div>
-                          <span className="font-medium">Afternoon:</span>{" "}
-                          {entry.afternoon_time_in} - {entry.afternoon_time_out}
-                          <span className="ml-2 text-gray-500">
-                            ({afternoonHours.toFixed(2)} hrs)
-                          </span>
-                        </div>
-                      )}
-
-                      {entry.evening_time_in && (
-                        <div>
-                          <span className="font-medium">Evening:</span>{" "}
-                          {entry.evening_time_in} - {entry.evening_time_out}
-                          <span className="ml-2 text-gray-500">
-                            ({eveningHours.toFixed(2)} hrs)
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-2 flex justify-end gap-3 items-center">
-                      <Sheet key={index}>
-                        <SheetTrigger asChild>
-                          <Button
-                            onClick={() =>
-                              setUpdateEntry({
-                                date: entry.date,
-                                afternoon_time_in: entry.afternoon_time_in,
-                                afternoon_time_out: entry.afternoon_time_out,
-                                evening_time_in: entry.evening_time_in,
-                                evening_time_out: entry.evening_time_out,
-                                morning_time_in: entry.morning_time_in,
-                                morning_time_out: entry.morning_time_out,
-                              })
-                            }
-                            variant="secondary"
-                          >
-                            Edit
-                          </Button>
-                        </SheetTrigger>
-                        <SheetContent>
-                          <SheetHeader>
-                            <SheetTitle>Edit Time History</SheetTitle>
-                            <SheetDescription>
-                              Edit your time history here and click Submit to
-                              save changes.
-                            </SheetDescription>
-                            <div className="space-y-4">
-                              <div>
-                                <Label
-                                  htmlFor="date"
-                                  className="flex items-center gap-2"
-                                >
-                                  <Calendar className="h-4 w-4" /> Date
-                                </Label>
-                                <Input
-                                  id="date"
-                                  type="date"
-                                  name="date"
-                                  value={updateEntry.date}
-                                  onChange={handleUpdateInputChange}
-                                  className="mt-1"
-                                />
-                              </div>
-
-                              <div>
-                                <Label className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4" /> Morning
-                                </Label>
-                                <div className="flex gap-2 mt-1">
-                                  <div className="w-1/2">
-                                    <Input
-                                      type="time"
-                                      name="morning_time_in"
-                                      placeholder="Time In"
-                                      value={updateEntry.morning_time_in}
-                                      onChange={handleUpdateInputChange}
-                                    />
-                                    <span className="text-xs text-gray-500">
-                                      Time In
-                                    </span>
-                                  </div>
-                                  <div className="w-1/2">
-                                    <Input
-                                      type="time"
-                                      name="morning_time_out"
-                                      placeholder="Time Out"
-                                      value={updateEntry.morning_time_out}
-                                      onChange={handleUpdateInputChange}
-                                    />
-                                    <span className="text-xs text-gray-500">
-                                      Time Out
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <Label className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4" /> Afternoon
-                                </Label>
-                                <div className="flex gap-2 mt-1">
-                                  <div className="w-1/2">
-                                    <Input
-                                      type="time"
-                                      name="afternoon_time_in"
-                                      placeholder="Time In"
-                                      value={updateEntry.afternoon_time_in}
-                                      onChange={handleUpdateInputChange}
-                                    />
-                                    <span className="text-xs text-gray-500">
-                                      Time In
-                                    </span>
-                                  </div>
-                                  <div className="w-1/2">
-                                    <Input
-                                      type="time"
-                                      name="afternoon_time_out"
-                                      placeholder="Time Out"
-                                      value={updateEntry.afternoon_time_out}
-                                      onChange={handleUpdateInputChange}
-                                    />
-                                    <span className="text-xs text-gray-500">
-                                      Time Out
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <Label className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4" /> Evening
-                                  (Optional)
-                                </Label>
-                                <div className="flex gap-2 mt-1">
-                                  <div className="w-1/2">
-                                    <Input
-                                      type="time"
-                                      name="evening_time_in"
-                                      placeholder="Time In"
-                                      value={updateEntry.evening_time_in}
-                                      onChange={handleUpdateInputChange}
-                                    />
-                                    <span className="text-xs text-gray-500">
-                                      Time In
-                                    </span>
-                                  </div>
-                                  <div className="w-1/2">
-                                    <Input
-                                      type="time"
-                                      name="evening_time_out"
-                                      placeholder="Time Out"
-                                      value={updateEntry.evening_time_out}
-                                      onChange={handleUpdateInputChange}
-                                    />
-                                    <span className="text-xs text-gray-500">
-                                      Time Out
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </SheetHeader>
-                          <SheetFooter>
-                            <SheetClose asChild>
-                              <Button
-                                onClick={() => handleUpdateEntry(entry.id)}
-                                variant="outline"
-                                type="submit"
-                              >
-                                Submit
-                              </Button>
-                            </SheetClose>
-                          </SheetFooter>
-                        </SheetContent>
-                      </Sheet>
-                      <Button
-                        disabled={isDeleting}
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteEntry(entry.id)}
-                      >
-                        {isDeleting ? (
-                          <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                        ) : (
-                          <p>Delete</p>
-                        )}
-                      </Button>
-                    </div>
-
-                    {index < timeEntries.length - 1 && (
-                      <Separator className="mt-4" />
-                    )}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      <footer className="p-3 mt-10 text-center">
-        <p className="text-sm">
-          Built with NextJS + TailwindCSS by{" "}
-          <span>
-            <a
-              className="underline hover:text-primary"
-              href="https://jundelmalazarte.vercel.app/"
-            >
-              Jundel Malazarte
-            </a>
-          </span>
-        </p>
-      </footer>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Time Entry Form */}
+          <Card className="shadow-xl border-border bg-card/80 backdrop-blur-md">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Clock className="h-5 w-5 text-primary" /> Record Time Entry
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Date */}
+                <div>
+                  <Label htmlFor="date" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" /> Date
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    name="date"
+                    value={newEntry.date}
+                    onChange={handleInputChange}
+                    className="mt-1 bg-background border-border"
+                  />
+                </div>
+
+                {/* Morning */}
+                <div>
+                  <Label className="flex items-center gap-2 mb-1">
+                    <Clock className="h-4 w-4 text-emerald-500" /> Morning
+                    <span className="text-[11px] text-muted-foreground">
+                      Time in (AM), time out (PM)
+                    </span>
+                  </Label>
+                  <div className="flex gap-3 mt-1">
+                    <div className="w-1/2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>Time In</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200">
+                          AM
+                        </span>
+                      </div>
+                      <Input
+                        type="time"
+                        name="morning_time_in"
+                        value={newEntry.morning_time_in}
+                        onChange={handleInputChange}
+                        className="bg-background border-border"
+                      />
+                    </div>
+                    <div className="w-1/2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>Time Out</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-[10px] font-semibold text-sky-700 dark:bg-sky-900/60 dark:text-sky-200">
+                          PM
+                        </span>
+                      </div>
+                      <Input
+                        type="time"
+                        name="morning_time_out"
+                        value={newEntry.morning_time_out}
+                        onChange={handleInputChange}
+                        className="bg-background border-border"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Afternoon */}
+                <div>
+                  <Label className="flex items-center gap-2 mb-1">
+                    <Clock className="h-4 w-4 text-amber-500" /> Afternoon
+                    <span className="text-[11px] text-muted-foreground">
+                      Time in &amp; out (PM)
+                    </span>
+                  </Label>
+                  <div className="flex gap-3 mt-1">
+                    <div className="w-1/2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>Time In</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">
+                          PM
+                        </span>
+                      </div>
+                      <Input
+                        type="time"
+                        name="afternoon_time_in"
+                        value={newEntry.afternoon_time_in}
+                        onChange={handleInputChange}
+                        className="bg-background border-border"
+                      />
+                    </div>
+                    <div className="w-1/2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>Time Out</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">
+                          PM
+                        </span>
+                      </div>
+                      <Input
+                        type="time"
+                        name="afternoon_time_out"
+                        value={newEntry.afternoon_time_out}
+                        onChange={handleInputChange}
+                        className="bg-background border-border"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Evening */}
+                <div>
+                  <Label className="flex items-center gap-2 mb-1">
+                    <Clock className="h-4 w-4 text-fuchsia-500" /> Evening
+                    <span className="text-[11px] text-muted-foreground">
+                      Optional, both PM
+                    </span>
+                  </Label>
+                  <div className="flex gap-3 mt-1">
+                    <div className="w-1/2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>Time In</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-fuchsia-100 text-[10px] font-semibold text-fuchsia-700 dark:bg-fuchsia-900/60 dark:text-fuchsia-200">
+                          PM
+                        </span>
+                      </div>
+                      <Input
+                        type="time"
+                        name="evening_time_in"
+                        value={newEntry.evening_time_in}
+                        onChange={handleInputChange}
+                        className="bg-background border-border"
+                      />
+                    </div>
+                    <div className="w-1/2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>Time Out</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-fuchsia-100 text-[10px] font-semibold text-fuchsia-700 dark:bg-fuchsia-900/60 dark:text-fuchsia-200">
+                          PM
+                        </span>
+                      </div>
+                      <Input
+                        type="time"
+                        name="evening_time_out"
+                        value={newEntry.evening_time_out}
+                        onChange={handleInputChange}
+                        className="bg-background border-border"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              {/* Primary button style used here */}
+              <Button
+                disabled={isSubmitting}
+                className="w-full"
+                onClick={handleAddEntry}
+              >
+                {isSubmitting ? (
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                ) : (
+                  <p>Add Time Entry</p>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
+        {/* History */}
+        <Card className="shadow-xl border-border bg-card/80 backdrop-blur-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Time Entry History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                Loading entries...
+              </div>
+            )}
+            {timeEntries.length === 0 && !loading ? (
+              <Alert className="bg-background border-border">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-foreground">
+                  No time entries yet. Add your first entry using the form
+                  above.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-4">
+                {timeEntries.map((entry, index) => {
+                  const morningHours = calculateEntryHours(
+                    entry.morning_time_in,
+                    entry.morning_time_out
+                  );
+                  const afternoonHours = calculateEntryHours(
+                    entry.afternoon_time_in,
+                    entry.afternoon_time_out
+                  );
+                  const eveningHours = calculateEntryHours(
+                    entry.evening_time_in,
+                    entry.evening_time_out
+                  );
+                  const totalHours =
+                    morningHours + afternoonHours + eveningHours;
+
+                  return (
+                    <div
+                      key={entry.id}
+                      className="border border-border rounded-xl p-4 bg-background"
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <div>
+                          <h3 className="font-semibold text-foreground">
+                            {new Date(entry.date).toLocaleDateString("en-US", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            Morning, afternoon and evening breakdown
+                          </p>
+                        </div>
+                        <span className="font-bold text-primary text-sm md:text-base">
+                          {totalHours.toFixed(2)} hours
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-3">
+                        {entry.morning_time_in && (
+                          <div className="rounded-lg bg-card px-3 py-2 border border-border">
+                            <span className="font-medium text-foreground">
+                              Morning
+                            </span>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {entry.morning_time_in} (AM) –{" "}
+                              {entry.morning_time_out} (PM)
+                              <span className="ml-2 text-primary font-medium">
+                                {morningHours.toFixed(2)} hrs
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {entry.afternoon_time_in && (
+                          <div className="rounded-lg bg-card px-3 py-2 border border-border">
+                            <span className="font-medium text-foreground">
+                              Afternoon
+                            </span>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {entry.afternoon_time_in} (PM) –{" "}
+                              {entry.afternoon_time_out} (PM)
+                              <span className="ml-2 text-amber-600 dark:text-amber-300 font-medium">
+                                {afternoonHours.toFixed(2)} hrs
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {entry.evening_time_in && (
+                          <div className="rounded-lg bg-card px-3 py-2 border border-border">
+                            <span className="font-medium text-foreground">
+                              Evening
+                            </span>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {entry.evening_time_in} (PM) –{" "}
+                              {entry.evening_time_out} (PM)
+                              <span className="ml-2 text-fuchsia-600 dark:text-fuchsia-300 font-medium">
+                                {eveningHours.toFixed(2)} hrs
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-3 flex justify-end gap-3 items-center">
+                        <Sheet key={index}>
+                          <SheetTrigger asChild>
+                            {/* Edit button now uses same primary style as Add */}
+                            <Button
+                              onClick={() =>
+                                setUpdateEntry({
+                                  date: entry.date,
+                                  afternoon_time_in: entry.afternoon_time_in,
+                                  afternoon_time_out: entry.afternoon_time_out,
+                                  evening_time_in: entry.evening_time_in,
+                                  evening_time_out: entry.evening_time_out,
+                                  morning_time_in: entry.morning_time_in,
+                                  morning_time_out: entry.morning_time_out,
+                                })
+                              }
+                              className="min-w-[72px]"
+                            >
+                              Edit
+                            </Button>
+                          </SheetTrigger>
+                          <SheetContent className="bg-background text-foreground border-border">
+                            <SheetHeader>
+                              <SheetTitle>Edit Time History</SheetTitle>
+                              <SheetDescription>
+                                Edit your time history here and click Submit to
+                                save changes.
+                              </SheetDescription>
+                              <div className="space-y-4 mt-4">
+                                {/* Date */}
+                                <div>
+                                  <Label
+                                    htmlFor="date"
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Calendar className="h-4 w-4" /> Date
+                                  </Label>
+                                  <Input
+                                    id="date"
+                                    type="date"
+                                    name="date"
+                                    value={updateEntry.date}
+                                    onChange={handleUpdateInputChange}
+                                    className="mt-1 bg-background border-border"
+                                  />
+                                </div>
+
+                                {/* Morning */}
+                                <div>
+                                  <Label className="flex items-center gap-2 mb-1">
+                                    <Clock className="h-4 w-4 text-emerald-500" />{" "}
+                                    Morning
+                                    <span className="text-[11px] text-muted-foreground">
+                                      Time in (AM), time out (PM)
+                                    </span>
+                                  </Label>
+                                  <div className="flex gap-3 mt-1">
+                                    <div className="w-1/2 space-y-1">
+                                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                        <span>Time In</span>
+                                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200">
+                                          AM
+                                        </span>
+                                      </div>
+                                      <Input
+                                        type="time"
+                                        name="morning_time_in"
+                                        value={updateEntry.morning_time_in}
+                                        onChange={handleUpdateInputChange}
+                                        className="bg-background border-border"
+                                      />
+                                    </div>
+                                    <div className="w-1/2 space-y-1">
+                                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                        <span>Time Out</span>
+                                        <span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-[10px] font-semibold text-sky-700 dark:bg-sky-900/60 dark:text-sky-200">
+                                          PM
+                                        </span>
+                                      </div>
+                                      <Input
+                                        type="time"
+                                        name="morning_time_out"
+                                        value={updateEntry.morning_time_out}
+                                        onChange={handleUpdateInputChange}
+                                        className="bg-background border-border"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Afternoon */}
+                                <div>
+                                  <Label className="flex items-center gap-2 mb-1">
+                                    <Clock className="h-4 w-4 text-amber-500" />{" "}
+                                    Afternoon
+                                    <span className="text-[11px] text-muted-foreground">
+                                      Time in &amp; out (PM)
+                                    </span>
+                                  </Label>
+                                  <div className="flex gap-3 mt-1">
+                                    <div className="w-1/2 space-y-1">
+                                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                        <span>Time In</span>
+                                        <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">
+                                          PM
+                                        </span>
+                                      </div>
+                                      <Input
+                                        type="time"
+                                        name="afternoon_time_in"
+                                        value={updateEntry.afternoon_time_in}
+                                        onChange={handleUpdateInputChange}
+                                        className="bg-background border-border"
+                                      />
+                                    </div>
+                                    <div className="w-1/2 space-y-1">
+                                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                        <span>Time Out</span>
+                                        <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">
+                                          PM
+                                        </span>
+                                      </div>
+                                      <Input
+                                        type="time"
+                                        name="afternoon_time_out"
+                                        value={updateEntry.afternoon_time_out}
+                                        onChange={handleUpdateInputChange}
+                                        className="bg-background border-border"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Evening */}
+                                <div>
+                                  <Label className="flex items-center gap-2 mb-1">
+                                    <Clock className="h-4 w-4 text-fuchsia-500" />{" "}
+                                    Evening (Optional)
+                                    <span className="text-[11px] text-muted-foreground">
+                                      Both PM
+                                    </span>
+                                  </Label>
+                                  <div className="flex gap-3 mt-1">
+                                    <div className="w-1/2 space-y-1">
+                                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                        <span>Time In</span>
+                                        <span className="px-1.5 py-0.5 rounded-full bg-fuchsia-100 text-[10px] font-semibold text-fuchsia-700 dark:bg-fuchsia-900/60 dark:text-fuchsia-200">
+                                          PM
+                                        </span>
+                                      </div>
+                                      <Input
+                                        type="time"
+                                        name="evening_time_in"
+                                        value={updateEntry.evening_time_in}
+                                        onChange={handleUpdateInputChange}
+                                        className="bg-background border-border"
+                                      />
+                                    </div>
+                                    <div className="w-1/2 space-y-1">
+                                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                        <span>Time Out</span>
+                                        <span className="px-1.5 py-0.5 rounded-full bg-fuchsia-100 text-[10px] font-semibold text-fuchsia-700 dark:bg-fuchsia-900/60 dark:text-fuchsia-200">
+                                          PM
+                                        </span>
+                                      </div>
+                                      <Input
+                                        type="time"
+                                        name="evening_time_out"
+                                        value={updateEntry.evening_time_out}
+                                        onChange={handleUpdateInputChange}
+                                        className="bg-background border-border"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </SheetHeader>
+                            <SheetFooter className="mt-4">
+                              <SheetClose asChild>
+                                {/* same primary style as Add */}
+                                <Button
+                                  onClick={() => handleUpdateEntry(entry.id)}
+                                  type="submit"
+                                >
+                                  Submit
+                                </Button>
+                              </SheetClose>
+                            </SheetFooter>
+                          </SheetContent>
+                        </Sheet>
+                        <Button
+                          disabled={isDeleting}
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteEntry(entry.id)}
+                        >
+                          {isDeleting ? (
+                            <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                          ) : (
+                            <p>Delete</p>
+                          )}
+                        </Button>
+                      </div>
+
+                      {index < timeEntries.length - 1 && (
+                        <Separator className="mt-4 border-border" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <footer className="p-3 mt-10 text-center text-xs text-muted-foreground">
+          Built with Next.js + Tailwind CSS ·{" "}
+          <a
+            className="underline hover:text-primary"
+            href="https://github.com/jundel-malazarte/"
+            target="_blank"
+          >
+            Jundel Malazarte
+          </a>
+        </footer>
+      </div>
     </div>
   );
 }
