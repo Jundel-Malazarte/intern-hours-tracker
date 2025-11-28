@@ -10,16 +10,29 @@ import {
 } from "@/components/ui/card";
 import { FaGoogle } from "react-icons/fa";
 import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        router.push("/");
+      }
+    };
+    checkUser();
+  }, [router, supabase]);
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_, session) => {
         if (session) {
-          location.reload();
+          router.push("/"); // Redirect to main page after login
         }
       }
     );
@@ -27,7 +40,7 @@ export default function AuthPage() {
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, router]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -35,7 +48,7 @@ export default function AuthPage() {
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_BASE_URL}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback`, // Changed this line!
         },
       });
     } catch (error) {
@@ -49,7 +62,7 @@ export default function AuthPage() {
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-6 text-3xl font-bold">
-            <p>OJT Hours Tracker</p>
+            <p>Intern Hours Tracker</p>
           </div>
           <CardDescription>
             Sign in to your google account to continue
