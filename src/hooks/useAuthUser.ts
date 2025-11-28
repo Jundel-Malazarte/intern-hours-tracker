@@ -8,24 +8,24 @@ export default function useAuthUser() {
   const [userLoading, setUserLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown>(null);
 
-  useEffect(() => {
-    async function getAuthUser() {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
+ useEffect(() => {
+  async function getAuthUser() {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-      if (error) {
-        setError(error);
-        return;
-      }
-
-      setUser(user);
-      setUserLoading(false);
+    if (error) {
+      setError(error);
+      return;
     }
 
-    getAuthUser();
-  }, []);
+    setUser(user);
+    setUserLoading(false);
+  }
+
+  getAuthUser();
+}, [supabase.auth]); // Add missing dependency
 
   return { user, userLoading, error };
 }

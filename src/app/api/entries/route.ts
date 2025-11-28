@@ -126,15 +126,15 @@ export async function POST(request: NextRequest) {
 
     // Convert validated strings into Date objects expected by Prisma
     const toCreate: Omit<Entries, "id" | "created_at"> = {
-      date: dateFromYMD(input.date) as any,
-      morning_time_in: timeFromHM(input.morning_time_in) as any,
-      morning_time_out: timeFromHM(input.morning_time_out) as any,
-      afternoon_time_in: timeFromHM(input.afternoon_time_in) as any,
-      afternoon_time_out: timeFromHM(input.afternoon_time_out) as any,
-      evening_time_in: timeFromHM(input.evening_time_in ?? null) as any,
-      evening_time_out: timeFromHM(input.evening_time_out ?? null) as any,
+      date: dateFromYMD(input.date) as Date,
+      morning_time_in: timeFromHM(input.morning_time_in) as Date,
+      morning_time_out: timeFromHM(input.morning_time_out) as Date,
+      afternoon_time_in: timeFromHM(input.afternoon_time_in) as Date,
+      afternoon_time_out: timeFromHM(input.afternoon_time_out) as Date,
+      evening_time_in: timeFromHM(input.evening_time_in ?? null),
+      evening_time_out: timeFromHM(input.evening_time_out ?? null),
       created_by: input.created_by,
-    };
+    };    
 
     const newEntry = await createEntries(toCreate);
 

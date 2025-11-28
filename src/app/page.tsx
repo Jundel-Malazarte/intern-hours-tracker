@@ -113,11 +113,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!localStorage.getItem("hours")) {
-      localStorage.setItem("hours", requiredHours);
-    }
+  if (!localStorage.getItem("hours")) {
+    localStorage.setItem("hours", requiredHours);
+  }
 
-    async function fetchEntries() {
+  async function fetchEntries() {
       if (!user?.id) return;
 
       const res = await fetch(`/api/entries`);
@@ -133,7 +133,7 @@ export default function Home() {
     if (stored !== null) {
       setRequiredHours(stored);
     }
-  }, [userLoading]);
+  }, [userLoading, requiredHours, user?.id]); // Add missing dependencies
 
   useEffect(() => {
     let totalHours = 0;
