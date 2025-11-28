@@ -56,6 +56,7 @@ export default function Home() {
   const [requiredHours, setRequiredHours] = useState<string>("500");
   const [completedHours, setCompletedHours] = useState<number>(0);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -112,50 +113,34 @@ export default function Home() {
     return Math.max(0, (outMinutes - inMinutes) / 60);
   };
 
+  // New useEffect to calculate total completed hours whenever entries change
   useEffect(() => {
-    if (!localStorage.getItem("hours")) {
-      localStorage.setItem("hours", requiredHours);
+    // Ensure timeEntries is an array before trying to reduce it
+    if (!Array.isArray(timeEntries) || timeEntries.length === 0) {
+      setCompletedHours(0);
+      return;
     }
 
-    async function fetchEntries() {
-      if (!user?.id) return;
+    const totalHours = timeEntries.reduce((sum, entry) => {
+      const morning = calculateEntryHours(
+        entry.morning_time_in,
+        entry.morning_time_out
+      );
+      const afternoon = calculateEntryHours(
+        entry.afternoon_time_in,
+        entry.afternoon_time_out
+      );
+      const evening = calculateEntryHours(
+        entry.evening_time_in,
+        entry.evening_time_out
+      );
 
-      try {
-        const res = await fetch(`/api/entries`);
-        
-        // 1. Safety Check: Did the API return an error code?
-        if (!res.ok) {
-          console.error("Failed to fetch:", res.status, res.statusText);
-          setTimeEntries([]); // Set empty array so app doesn't crash
-          setLoading(false);
-          return;
-        }
+      return sum + morning + afternoon + evening;
+    }, 0);
 
-        const data = await res.json();
-
-        // 2. Safety Check: Is the data actually an array?
-        if (Array.isArray(data)) {
-          setTimeEntries(data);
-        } else {
-          console.error("API returned invalid format:", data);
-          setTimeEntries([]); // Fallback to empty array
-        }
-      } catch (error) {
-        console.error("Network or parsing error:", error);
-        setTimeEntries([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchEntries();
-
-    const stored = localStorage.getItem("hours");
-    if (stored !== null) {
-      setRequiredHours(stored);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+    // This is where you use the 'setCompletedHours' setter!
+    setCompletedHours(totalHours);
+  }, [timeEntries]); // Dependency array: Recalculate anytime timeEntries changes
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
