@@ -1,10 +1,13 @@
-import { prisma } from "@/utils/prisma";
+import { prisma } from "@/lib/prisma";
 import { Entries } from "../../../../generated/prisma";
 
 export async function getEntriesByUser(uuid: string): Promise<Entries[]> {
   return await prisma.entries.findMany({
     where: {
       created_by: uuid,
+    },
+    orderBy: {
+      date: "desc",
     },
   });
 }
@@ -13,7 +16,7 @@ export async function getEntriesByID(
   id: number,
   uuid: string
 ): Promise<Entries | null> {
-  return await prisma.entries.findUnique({
+  return await prisma.entries.findFirst({
     where: {
       id,
       created_by: uuid,
@@ -31,7 +34,7 @@ export async function updateEntry(
   id: number,
   uuid: string,
   data: Omit<Entries, "id" | "created_at">
-) {
+): Promise<Entries> {
   return await prisma.entries.update({
     data,
     where: {
