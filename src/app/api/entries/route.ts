@@ -2,9 +2,8 @@ import { NextRequest } from "next/server";
 import {
   createEntries,
   getEntriesByUser,
-} 
-from "../../modules/entries/repository";
-import { Entries } from "@prisma/client";
+} from "../../modules/entries/repository";
+import { Entries } from "../../../../generated/prisma"; // Change this line
 import { entriesSchema } from "@/app/modules/entries";
 import { ZodError } from "zod";
 import { createClient } from "@/utils/supabase/server";
