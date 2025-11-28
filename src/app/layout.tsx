@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OJT Hours Tracker",
+  title: "Intern Hours Tracker",
   description: "A simple website for tracking ojt hours rendered by students.",
 };
 
