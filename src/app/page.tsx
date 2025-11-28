@@ -600,7 +600,7 @@ export default function Home() {
               </Alert>
             ) : (
               <div className="space-y-4">
-                {timeEntries.map((entry, index) => {
+                {Array.isArray(timeEntries) && timeEntries.map((entry, index) => {
                   const morningHours = calculateEntryHours(
                     entry.morning_time_in,
                     entry.morning_time_out

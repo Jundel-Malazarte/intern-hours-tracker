@@ -43,15 +43,19 @@ export async function PUT(
   const supabase = await createClient();
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(); // <--- CRITICAL FIX
 
-  if (!session) {
+  if (authError || !user) {
+    console.error("PUT Auth Error:", authError);
     return new Response(JSON.stringify({ error: "Unauthorized access" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
+  // Make sure to use 'user.id' instead of 'session.user.id' below
+  const session = { user }; // Mock session object for compatibility
 
   if (!id) {
     return new Response(
@@ -130,25 +134,19 @@ export async function DELETE(
   const supabase = await createClient();
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(); // <--- CRITICAL FIX
 
-  if (!session) {
+  if (authError || !user) {
+    console.error("DELETE Auth Error:", authError);
     return new Response(JSON.stringify({ error: "Unauthorized access" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
-
-  if (!id) {
-    return new Response(
-      JSON.stringify({ error: "The requested resource could not be found" }),
-      {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  }
+  // Make sure to use 'user.id' instead of 'session.user.id' below
+  const session = { user }; // Mock session object for compatibility
 
   try {
     const existingEntry = await getEntriesByID(Number(id), session.user.id);
