@@ -225,58 +225,79 @@ export default function Home() {
   };
 
   const handleAddEntry = async () => {
-    // 1. Basic validation check (missing in your code)
-    if (
-      !newEntry.date ||
-      !newEntry.morning_time_in ||
-      !newEntry.morning_time_out ||
-      !newEntry.afternoon_time_in ||
-      !newEntry.afternoon_time_out
-    ) {
-      toast.error("Please fill in Date, Morning In/Out, and Afternoon In/Out.");
+  // 1. Check if date is provided
+  if (!newEntry.date) {
+    toast.error("Please select a date.");
+    return;
+  }
+
+  // 2. Check if at least ONE valid time pair is provided
+  const hasMorning = newEntry.morning_time_in && newEntry.morning_time_out;
+  const hasAfternoon = newEntry.afternoon_time_in && newEntry.afternoon_time_out;
+  const hasEvening = newEntry.evening_time_in && newEntry.evening_time_out;
+
+  if (!hasMorning && !hasAfternoon && !hasEvening) {
+    toast.error("Please fill in at least one complete time period (Morning, Afternoon, or Evening).");
+    return;
+  }
+
+  // 3. Validate partial entries (if one field is filled, the other must be too)
+  if ((newEntry.morning_time_in && !newEntry.morning_time_out) || 
+      (!newEntry.morning_time_in && newEntry.morning_time_out)) {
+    toast.error("Please complete both Morning Time In and Time Out.");
+    return;
+  }
+
+  if ((newEntry.afternoon_time_in && !newEntry.afternoon_time_out) || 
+      (!newEntry.afternoon_time_in && newEntry.afternoon_time_out)) {
+    toast.error("Please complete both Afternoon Time In and Time Out.");
+    return;
+  }
+
+  if ((newEntry.evening_time_in && !newEntry.evening_time_out) || 
+      (!newEntry.evening_time_in && newEntry.evening_time_out)) {
+    toast.error("Please complete both Evening Time In and Time Out.");
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const response = await fetch("/api/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newEntry),
+    });
+
+    if (response.status !== 201) {
+      toast.error("Error adding time entry.");
       return;
     }
 
-    setIsSubmitting(true); // <--- CRITICAL: Start loading state and disable button
+    const data: TimeEntry = await response.json();
 
-    try {
-      const response = await fetch("/api/entries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newEntry),
-      });
+    // Update the dashboard display with the new entry
+    setTimeEntries((prev) => [...prev, data]);
 
-      if (response.status !== 201) {
-        // If the API returns a status other than 201, show the error message.
-        toast.error("Error adding time entry.");
-        // We do not return here, we let the finally block reset the button state.
-        return;
-      }
+    toast.success("Added entry successfully");
 
-      const data: TimeEntry = await response.json();
-
-      // Update the dashboard display with the new entry
-      setTimeEntries((prev) => [...prev, data]);
-
-      toast.success("Added entry successfully");
-
-      // Reset form fields
-      setNewEntry({
-        date: "",
-        morning_time_in: "",
-        morning_time_out: "",
-        afternoon_time_in: "",
-        afternoon_time_out: "",
-        evening_time_in: "",
-        evening_time_out: "",
-      });
-    } catch (error) {
-      console.error("Client-side error adding entry:", error);
-      toast.error("An unexpected error occurred.");
-    } finally {
-      setIsSubmitting(false); // <--- CRITICAL: Re-enable the button regardless of outcome
-    }
-  };
+    // Reset form fields
+    setNewEntry({
+      date: "",
+      morning_time_in: "",
+      morning_time_out: "",
+      afternoon_time_in: "",
+      afternoon_time_out: "",
+      evening_time_in: "",
+      evening_time_out: "",
+    });
+  } catch (error) {
+    console.error("Client-side error adding entry:", error);
+    toast.error("An unexpected error occurred.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleUpdateEntry = async (id: number) => {
     if (!updateEntry.date) {

@@ -1,3 +1,4 @@
+// route.ts : on src/app/api/entries/route.ts
 import { NextRequest } from "next/server";
 import {
   createEntries,
@@ -115,13 +116,13 @@ export async function POST(request: NextRequest) {
     });
 
     const toCreate: Omit<Entries, "id" | "created_at"> = {
-      date: dateFromYMD(input.date) as Date,
-      morning_time_in: timeFromHM(input.morning_time_in) as Date,
-      morning_time_out: timeFromHM(input.morning_time_out) as Date,
-      afternoon_time_in: timeFromHM(input.afternoon_time_in) as Date,
-      afternoon_time_out: timeFromHM(input.afternoon_time_out) as Date,
-      evening_time_in: timeFromHM(input.evening_time_in ?? null),
-      evening_time_out: timeFromHM(input.evening_time_out ?? null),
+      date: dateFromYMD(input.date),
+      morning_time_in: input.morning_time_in ? timeFromHM(input.morning_time_in) : null,
+      morning_time_out: input.morning_time_out ? timeFromHM(input.morning_time_out) : null,
+      afternoon_time_in: input.afternoon_time_in ? timeFromHM(input.afternoon_time_in) : null,
+      afternoon_time_out: input.afternoon_time_out ? timeFromHM(input.afternoon_time_out) : null,
+      evening_time_in: input.evening_time_in ? timeFromHM(input.evening_time_in) : null,
+      evening_time_out: input.evening_time_out ? timeFromHM(input.evening_time_out) : null,
       created_by: input.created_by,
     };
 
