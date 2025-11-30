@@ -11,4 +11,4 @@ export const entriesSchema = z.object({
   created_by: z.string(),
 });
 
-export { deleteEntry, getEntriesByID, updateEntry } from "./repository";
+export { deleteEntry, getEntriesByID, updateEntry } from "../../modules/entries/repository";

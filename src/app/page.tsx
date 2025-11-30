@@ -56,7 +56,6 @@ export default function Home() {
   const [requiredHours, setRequiredHours] = useState<string>("500");
   const [completedHours, setCompletedHours] = useState<number>(0);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [loading, setLoading] = useState<boolean>(true); // Initial state is true
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
